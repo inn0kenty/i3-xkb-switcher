@@ -1,0 +1,65 @@
+name: Build and release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_and_release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.7'
+          architecture: 'x64'
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install upx -y
+          pip install poetry
+      - name: Install project requirements
+        run: |
+          poetry config virtualenvs.create false
+          poetry install --no-interaction
+      - name: Build python and binary
+        run: |
+          poetry build
+          pyinstaller i3-xkb-switcher.spec
+          upx dist/i3-xkb-switcher
+      - name: Calculate binary hash
+        run: |
+          cd dist
+          sha256sum i3-xkb-switcher > sha256sum.txt
+      - name: Publish to pypi
+        run: |
+          poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
+          poetry publish
+      - name: Create Github release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: ${{ github.ref }}
+      - name: Upload binary to Github release
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/i3-xkb-switcher
+          asset_name: i3-xkb-switcher
+          asset_content_type: application/octet-stream
+      - name: Upload hash to Github release
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/sha256sum.txt
+          asset_name: sha256sum.txt
+          asset_content_type: text/plain

@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "i3-xkb-switcher"
+version = "0.0.0"
+description = "Keyboard layout switcher for i3 windows"
+authors = ["Innokenty Lebedev"]
+repository = "https://github.com/inn0kenty/i3-xkb-switcher"
+readme = "README.md"
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+i3ipc = "^2.1.1"
+xkbgroup = "^0.2.0"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.750"
+flake8 = "^3.7.9"
+flake8-adjustable-complexity = "^0.0.1"
+flake8-annotations-complexity = "^0.0.2"
+flake8-annotations-coverage = "^0.0.3"
+flake8-variables-names = "^0.0.3"
+flake8-class-attributes-order = "^0.0.7"
+flake8-import-order = "^0.18.1"
+flake8-builtins = "^1.4.1"
+flake8-logging-format = "^0.6.0"
+flake8-bandit = "^2.1.2"
+black = "^19.10b0"
+bump2version = "^0.5.11"
+pyinstaller = "^3.5"
+
+[tool.poetry.scripts]
+i3-xkb-switcher = 'i3_xkb_switcher.switcher:main'
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

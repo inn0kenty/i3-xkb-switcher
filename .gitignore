@@ -1,0 +1,6 @@
+.mypy_cache
+.vscode
+build
+dist
+**.pyc
+*.egg-info
