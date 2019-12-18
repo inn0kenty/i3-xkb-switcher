@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "i3-xkb-switcher"
-version = "0.0.0"
+version = "0.1.0"
 description = "Keyboard layout switcher for i3 windows"
 authors = ["Innokenty Lebedev"]
 repository = "https://github.com/inn0kenty/i3-xkb-switcher"
