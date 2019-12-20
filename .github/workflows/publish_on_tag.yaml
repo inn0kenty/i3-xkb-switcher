@@ -15,11 +15,25 @@ jobs:
         with:
           python-version: '3.7'
           architecture: 'x64'
-      - name: Install build dependencies
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      - uses: actions/cache@v1
+        id: upx
+        with:
+          path: ./upx
+          key: ${{ runner.os }}-upx-3.95
+      - name: Install upx
+        if: steps.upx.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get update
-          sudo apt-get install upx -y
-          pip install poetry
+          wget https://github.com/upx/upx/releases/download/v3.95/upx-3.95-amd64_linux.tar.xz
+          tar -xJf upx-3.95-amd64_linux.tar.xz
+          mv upx-3.95-amd64_linux upx
+      - name: Install build dependencies
+        run: pip install poetry
       - name: Install project requirements
         run: |
           poetry config virtualenvs.create false
@@ -27,8 +41,8 @@ jobs:
       - name: Build python and binary
         run: |
           poetry build
-          pyinstaller i3-xkb-switcher.spec
-          upx dist/i3-xkb-switcher
+          pyinstaller --upx-dir ./upx i3-xkb-switcher.spec
+          ./upx/upx dist/i3-xkb-switcher
       - name: Calculate binary hash
         run: |
           cd dist
@@ -38,28 +52,10 @@ jobs:
           poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
           poetry publish
       - name: Create Github release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: meeDamian/github-release@1.0
         with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.ref }}
-      - name: Upload binary to Github release
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/i3-xkb-switcher
-          asset_name: i3-xkb-switcher
-          asset_content_type: application/octet-stream
-      - name: Upload hash to Github release
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/sha256sum.txt
-          asset_name: sha256sum.txt
-          asset_content_type: text/plain
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            ./dist/i3-xkb-switcher
+            ./dist/sha256sum.txt
+          gzip: false
