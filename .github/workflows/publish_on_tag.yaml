@@ -27,8 +27,8 @@ jobs:
       - name: Build python and binary
         run: |
           poetry build
-          pyinstaller --upx-dir ./upx i3-xkb-switcher.spec
-          ./upx/upx dist/i3-xkb-switcher
+          poetry run pyinstaller i3-xkb-switcher.spec
+          upx dist/i3-xkb-switcher
       - name: Calculate binary hash
         run: |
           cd dist
