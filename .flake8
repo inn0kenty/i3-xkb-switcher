@@ -6,3 +6,4 @@ statistics = true
 show-source = true
 exclude =
     */migrations
+ignore = TAE001
