@@ -87,6 +87,13 @@ def main():
     parser.add_argument(
         "--log-path", action="store", default="", help="log file path",
     )
+    parser.add_argument(
+        "--background",
+        action="store_const",
+        const=True,
+        default=False,
+        help="run in background (default: false)",
+    )
 
     args = parser.parse_known_args()[0]
     if args.version:
@@ -107,6 +114,17 @@ def main():
 
     logging.debug("Start version: %s", __version__)
 
+    if args.background:
+        pid = os.fork()
+        if pid == 0:
+            start()
+        else:
+            logging.debug("Forked to: %d", pid)
+    else:
+        start()
+
+
+def start():
     try:
         asyncio.get_event_loop().run_until_complete(_main())
     except KeyboardInterrupt:
