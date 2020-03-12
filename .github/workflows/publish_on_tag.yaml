@@ -10,33 +10,19 @@ jobs:
     name: Build and Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
         with:
-          python-version: '3.7'
-          architecture: 'x64'
+          python-version: 3.7
       - uses: actions/cache@v1
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/poetry.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      - uses: actions/cache@v1
-        id: upx
-        with:
-          path: ./upx
-          key: ${{ runner.os }}-upx-3.95
-      - name: Install upx
-        if: steps.upx.outputs.cache-hit != 'true'
-        run: |
-          wget https://github.com/upx/upx/releases/download/v3.95/upx-3.95-amd64_linux.tar.xz
-          tar -xJf upx-3.95-amd64_linux.tar.xz
-          mv upx-3.95-amd64_linux upx
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
       - name: Install build dependencies
         run: pip install poetry
       - name: Install project requirements
         run: |
-          poetry config virtualenvs.create false
+          poetry config virtualenvs.in-project true
           poetry install --no-interaction
       - name: Build python and binary
         run: |
