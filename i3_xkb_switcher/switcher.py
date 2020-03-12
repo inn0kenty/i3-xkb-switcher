@@ -1,7 +1,9 @@
 import argparse
 import asyncio
+import atexit
 import logging
 import os
+from tempfile import gettempdir
 
 from i3ipc import Event
 from i3ipc.aio import Connection
@@ -56,7 +58,7 @@ class State:
         return self._xkb.group_symbol
 
 
-async def _main():
+async def _entrypoint():
     conn = await Connection(auto_reconnect=True).connect()
     st = State()
 
@@ -66,7 +68,7 @@ async def _main():
     await conn.main()
 
 
-def main():
+def _parse_args():
     parser = argparse.ArgumentParser(
         description="Individual keyboard layout for each i3 window"
     )
@@ -95,11 +97,10 @@ def main():
         help="run in background (default: false)",
     )
 
-    args = parser.parse_known_args()[0]
-    if args.version:
-        print(__version__)
-        return
+    return parser.parse_known_args()[0]
 
+
+def _build_log_config(args):
     basic_cfg = dict(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         level=logging.DEBUG if args.debug else logging.CRITICAL,
@@ -110,23 +111,47 @@ def main():
         basic_cfg["filename"] = args.log_path
         basic_cfg["filemode"] = "a"
 
-    logging.basicConfig(**basic_cfg)
+    return basic_cfg
+
+
+def main():
+    args = _parse_args()
+
+    if args.version:
+        print(__version__)
+        return
+
+    # try lock process
+    path = os.path.join(gettempdir(), "i3-xkb-switcher.lock")
+
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_WRONLY | os.O_EXCL)
+    except FileExistsError:
+        print("can not open lock file: " + path + ". process already exists?")
+        return
+
+    def _cleanup():
+        os.close(fd)
+        os.remove(path)
+
+    logging.basicConfig(**_build_log_config(args))
 
     logging.debug("Start version: %s", __version__)
 
     if args.background:
         pid = os.fork()
-        if pid == 0:
-            start()
-        else:
+        if pid != 0:
             logging.debug("Forked to: %d", pid)
-    else:
-        start()
+            return
+
+    atexit.register(_cleanup)
+    os.write(fd, str(os.getpid()).encode())
+    _start()
 
 
-def start():
+def _start():
     try:
-        asyncio.get_event_loop().run_until_complete(_main())
+        asyncio.get_event_loop().run_until_complete(_entrypoint())
     except KeyboardInterrupt:
         logging.debug("shutdown")
 
